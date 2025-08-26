@@ -1,0 +1,374 @@
+# ========================================
+# Enterprise DevOps .gitignore
+# Comprehensive coverage for Node.js microservices
+# ========================================
+
+# ===== Operating Systems =====
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows  
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# ===== IDEs & Editors =====
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+
+# Vim
+*.swp
+*.swo
+*~
+tags
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ===== Node.js =====
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+.nyc_output
+
+# Grunt intermediate storage
+.grunt
+
+# Bower dependency directory
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons
+build/Release
+
+# Dependency directories
+jspm_packages/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# ===== Environment & Configuration =====
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Secrets and sensitive data
+.secrets
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+config/local.json
+config/production.json
+config/staging.json
+
+# ===== Docker & Containers =====
+# Docker build context
+.dockerignore.bak
+docker-compose.override.yml
+docker-compose.*.yml
+!docker-compose.yml
+!docker-compose.dev.yml
+!docker-compose.prod.yml
+
+# Container logs
+containers.log
+docker.log
+
+# ===== Kubernetes =====
+# Kubernetes secrets
+k8s-manifests/secrets/
+k8s-manifests/*.secret.yaml
+k8s-manifests/*-secret.yaml
+
+# Helm
+*.tgz
+charts/*/charts/
+charts/*/requirements.lock
+
+# ===== CI/CD & Testing =====
+# Test results and reports
+test-results/
+coverage/
+junit.xml
+test-output/
+*.tap
+.nyc_output/
+
+# Jest
+jest_*
+
+# Mocha
+mochawesome-report/
+
+# Performance testing
+performance-results/
+load-test-results/
+
+# GitHub Actions artifacts
+.github/artifacts/
+
+# ===== Logs & Monitoring =====
+# Application logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Service logs
+services.log
+microservices.log
+access.log
+error.log
+
+# PM2 logs
+.pm2/
+
+# ===== Database =====
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+db.json
+
+# MySQL
+*.sql
+mysql-data/
+
+# Redis
+dump.rdb
+redis-data/
+
+# PostgreSQL
+*.backup
+
+# ===== Build & Distribution =====
+# Build outputs
+dist/
+build/
+lib/
+public/build/
+
+# Webpack
+.cache/
+.parcel-cache/
+
+# Next.js
+.next/
+out/
+
+# Nuxt.js
+.nuxt/
+dist/
+
+# Gatsby
+.cache/
+public
+
+# ===== Package Managers =====
+# npm
+package-lock.json
+!configuration-service/package-lock.json
+!log-aggregator-service/package-lock.json
+
+# Yarn
+yarn.lock
+!configuration-service/yarn.lock
+!log-aggregator-service/yarn.lock
+
+# pnpm
+pnpm-lock.yaml
+
+# ===== DevOps Tools =====
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+terraform.tfvars.json
+*.tfplan
+
+# Ansible
+*.retry
+.vault_pass.txt
+
+# Vagrant
+.vagrant/
+
+# ===== Cloud Providers =====
+# AWS
+.aws/
+*.pem
+
+# Google Cloud
+*.json
+!package.json
+!package-lock.json
+!mcp.json
+
+# Azure
+.azure/
+
+# ===== Monitoring & APM =====
+# New Relic
+newrelic_agent.log
+
+# Application Performance Monitoring
+apm/
+metrics/
+telemetry/
+
+# ===== Security Tools =====
+# Security scan results
+security-scan-results/
+vulnerability-reports/
+.snyk
+
+# Trivy cache
+.trivyignore
+
+# ===== Temporary Files =====
+# General temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+.cache
+cache/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Archive files
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# ===== Project Specific =====
+# Screenshots and documentation images
+*.png
+*.jpg
+*.jpeg
+*.gif
+screenshots/
+docs/images/
+
+# Custom configuration
+local.config.js
+local.config.json
+
+# Development tools
+.eslintcache
+.stylelintcache
+
+# ===== Keep Essential Files =====
+# Force include important files that might be ignored
+!.gitkeep
+!.env.example
+!.secrets.example
+!README.md
+!LICENSE
+!Dockerfile
+!docker-compose.yml
+!Makefile
+!.github/workflows/
+!k8s-manifests/
+!scripts/
+
+# ===== Performance & Benchmarks =====
+# Benchmark results
+benchmarks/
+performance/
+*.perf
+
+# ===== End of .gitignore =====

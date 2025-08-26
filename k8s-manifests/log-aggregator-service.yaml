@@ -1,0 +1,163 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: log-aggregator-service-config
+  namespace: microservices
+data:
+  MYSQL_HOST: "mysql"
+  MYSQL_PORT: "3306"
+  MYSQL_DATABASE: "microservices_db"
+  MYSQL_USER: "myuser"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  PORT: "3002"
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: log-aggregator-service-secret
+  namespace: microservices
+type: Opaque
+data:
+  MYSQL_PASSWORD: bXlwYXNzd29yZA==  # base64 encoded "mypassword"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-aggregator-service
+  namespace: microservices
+  labels:
+    app: log-aggregator-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: log-aggregator-service
+  template:
+    metadata:
+      labels:
+        app: log-aggregator-service
+    spec:
+      containers:
+      - name: log-aggregator-service
+        image: log-aggregator-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3002
+        envFrom:
+        - configMapRef:
+            name: log-aggregator-service-config
+        env:
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: log-aggregator-service-secret
+              key: MYSQL_PASSWORD
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3002
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3002
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 3002
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 10
+        volumeMounts:
+        - name: log-storage
+          mountPath: /app/logs
+      volumes:
+      - name: log-storage
+        emptyDir: {}
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: log-aggregator-service
+  namespace: microservices
+  labels:
+    app: log-aggregator-service
+spec:
+  selector:
+    app: log-aggregator-service
+  ports:
+  - port: 3002
+    targetPort: 3002
+    protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: log-aggregator-service-ingress
+  namespace: microservices
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - host: logs.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: log-aggregator-service
+            port:
+              number: 3002
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: log-aggregator-service-hpa
+  namespace: microservices
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: log-aggregator-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

@@ -1,0 +1,29 @@
+# Act configuration file for local GitHub Actions testing
+# This file configures act to run GitHub Actions workflows locally
+
+# Default Docker images for different runner types
+-P ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-latest
+-P ubuntu-22.04=ghcr.io/catthehacker/ubuntu:act-22.04
+-P ubuntu-20.04=ghcr.io/catthehacker/ubuntu:act-20.04
+
+# Use GitHub's default environment variables
+--env GITHUB_ACTIONS=true
+--env CI=true
+
+# Default secrets file (create .secrets if needed)
+--secret-file .secrets
+
+# Default event file for push events
+--eventpath .github/events/push.json
+
+# Verbose output for debugging
+--verbose
+
+# Use host networking to access local services
+--network host
+
+# Mount the workspace
+--bind
+
+# Use artifact server
+--artifact-server-path /tmp/act-artifacts

@@ -1,0 +1,29 @@
+{
+  "name": "log-aggregator-service",
+  "version": "1.0.0",
+  "description": "Log Aggregator Service for collecting and processing logs from various sources",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mysql2": "^3.6.5",
+    "redis": "^4.6.8",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "winston": "^3.11.0",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
+  },
+  "keywords": ["microservices", "logging", "aggregation", "nodejs"],
+  "author": "DevOps Engineer",
+  "license": "MIT"
+}

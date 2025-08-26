@@ -1,0 +1,139 @@
+name: Configuration Service CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'configuration-service/**'
+      - '.github/workflows/configuration-service-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'configuration-service/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: configuration-service
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: test_db
+          MYSQL_USER: testuser
+          MYSQL_PASSWORD: testpass
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: configuration-service/package-lock.json
+
+    - name: Install dependencies
+      working-directory: ./configuration-service
+      run: npm ci
+
+    - name: Run linter
+      working-directory: ./configuration-service
+      run: npm run lint --if-present
+
+    - name: Run tests
+      working-directory: ./configuration-service
+      run: npm test --if-present
+      env:
+        MYSQL_HOST: localhost
+        MYSQL_PORT: 3306
+        MYSQL_USER: testuser
+        MYSQL_PASSWORD: testpass
+        MYSQL_DATABASE: test_db
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+
+    - name: Run security audit
+      working-directory: ./configuration-service
+      run: npm audit --if-present
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./configuration-service
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure kubectl
+      uses: azure/k8s-set-context@v3
+      with:
+        method: kubeconfig
+        kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+    - name: Deploy to Kubernetes
+      run: |
+        # Update image in deployment
+        kubectl set image deployment/configuration-service \
+          configuration-service=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:main-${{ github.sha }} \
+          -n microservices
+        
+        # Wait for rollout to complete
+        kubectl rollout status deployment/configuration-service -n microservices --timeout=300s
+
+    - name: Verify deployment
+      run: |
+        kubectl get pods -n microservices -l app=configuration-service
+        kubectl get service configuration-service -n microservices

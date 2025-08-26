@@ -1,0 +1,141 @@
+#!/bin/bash
+# Git Pre-commit Hook for Code Quality
+# Runs linting, tests, and security checks before commit
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}🪝 Running pre-commit checks...${NC}"
+
+# Check if we're in the right directory
+if [ ! -f "Makefile" ]; then
+    echo -e "${RED}❌ Pre-commit hook must be run from project root${NC}"
+    exit 1
+fi
+
+# Function to run checks and handle failures
+run_check() {
+    local check_name="$1"
+    local command="$2"
+    
+    echo -e "\n${YELLOW}Running $check_name...${NC}"
+    
+    if eval "$command"; then
+        echo -e "${GREEN}✅ $check_name passed${NC}"
+    else
+        echo -e "${RED}❌ $check_name failed${NC}"
+        echo -e "${YELLOW}Fix the issues above and try committing again${NC}"
+        exit 1
+    fi
+}
+
+# Only run checks on staged files in our services
+STAGED_JS_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|json)$' | grep -E '(configuration-service|log-aggregator-service)/' || true)
+
+if [ -z "$STAGED_JS_FILES" ]; then
+    echo -e "${GREEN}✅ No JavaScript/JSON files to check${NC}"
+    exit 0
+fi
+
+echo -e "${BLUE}Files to check:${NC}"
+echo "$STAGED_JS_FILES" | sed 's/^/  - /'
+
+# Install dependencies if needed
+if [ ! -d "configuration-service/node_modules" ] || [ ! -d "log-aggregator-service/node_modules" ]; then
+    echo -e "\n${YELLOW}Installing dependencies...${NC}"
+    run_check "Dependency Installation" "make install"
+fi
+
+# Run linting
+run_check "Linting" "make lint"
+
+# Run tests
+run_check "Unit Tests" "make test"
+
+# Check for security vulnerabilities
+echo -e "\n${YELLOW}Running security audit...${NC}"
+if make audit 2>/dev/null; then
+    echo -e "${GREEN}✅ Security audit passed${NC}"
+else
+    echo -e "${YELLOW}⚠️ Security audit found issues (continuing)${NC}"
+fi
+
+# Check for sensitive data
+echo -e "\n${YELLOW}Checking for sensitive data...${NC}"
+SENSITIVE_PATTERNS=(
+    "password\s*=\s*['\"][^'\"]*['\"]"
+    "api_key\s*=\s*['\"][^'\"]*['\"]"
+    "secret\s*=\s*['\"][^'\"]*['\"]"
+    "token\s*=\s*['\"][^'\"]*['\"]"
+    "private_key"
+    "-----BEGIN.*PRIVATE KEY-----"
+    "mysql://.*:.*@"
+    "postgres://.*:.*@"
+)
+
+found_sensitive=false
+for pattern in "${SENSITIVE_PATTERNS[@]}"; do
+    if echo "$STAGED_JS_FILES" | xargs grep -i -E "$pattern" 2>/dev/null; then
+        echo -e "${RED}❌ Potential sensitive data found: $pattern${NC}"
+        found_sensitive=true
+    fi
+done
+
+if [ "$found_sensitive" = true ]; then
+    echo -e "${RED}❌ Sensitive data detected in staged files${NC}"
+    echo -e "${YELLOW}Please remove sensitive data and try again${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✅ No sensitive data found${NC}"
+
+# Check file sizes
+echo -e "\n${YELLOW}Checking file sizes...${NC}"
+large_files=$(echo "$STAGED_JS_FILES" | xargs ls -la | awk '$5 > 1048576 {print $9 " (" $5 " bytes)"}')
+if [ -n "$large_files" ]; then
+    echo -e "${YELLOW}⚠️ Large files detected:${NC}"
+    echo "$large_files"
+    echo -e "${YELLOW}Consider if these large files are necessary${NC}"
+fi
+
+# Check for TODO/FIXME comments in committed code
+echo -e "\n${YELLOW}Checking for TODO/FIXME comments...${NC}"
+todo_count=$(echo "$STAGED_JS_FILES" | xargs grep -n -i -E "(TODO|FIXME|XXX|HACK)" 2>/dev/null | wc -l || echo 0)
+if [ "$todo_count" -gt 0 ]; then
+    echo -e "${YELLOW}⚠️ Found $todo_count TODO/FIXME comments:${NC}"
+    echo "$STAGED_JS_FILES" | xargs grep -n -i -E "(TODO|FIXME|XXX|HACK)" 2>/dev/null || true
+    echo -e "${YELLOW}Consider addressing these before committing${NC}"
+fi
+
+# Check for console.log statements (should be rare in production)
+console_logs=$(echo "$STAGED_JS_FILES" | xargs grep -n "console\." 2>/dev/null | wc -l || echo 0)
+if [ "$console_logs" -gt 0 ]; then
+    echo -e "${YELLOW}⚠️ Found $console_logs console statements:${NC}"
+    echo "$STAGED_JS_FILES" | xargs grep -n "console\." 2>/dev/null || true
+    echo -e "${YELLOW}Consider using proper logging instead${NC}"
+fi
+
+# Validate JSON files
+echo -e "\n${YELLOW}Validating JSON files...${NC}"
+json_files=$(echo "$STAGED_JS_FILES" | grep '\.json$' || true)
+if [ -n "$json_files" ]; then
+    for file in $json_files; do
+        if ! python -m json.tool "$file" > /dev/null 2>&1; then
+            echo -e "${RED}❌ Invalid JSON in $file${NC}"
+            exit 1
+        fi
+    done
+    echo -e "${GREEN}✅ All JSON files are valid${NC}"
+fi
+
+# Final message
+echo -e "\n${GREEN}🎉 All pre-commit checks passed!${NC}"
+echo -e "${BLUE}Proceeding with commit...${NC}"
+
+exit 0

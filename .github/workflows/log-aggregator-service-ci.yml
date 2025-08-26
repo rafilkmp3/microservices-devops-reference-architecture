@@ -1,0 +1,154 @@
+name: Log Aggregator Service CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'log-aggregator-service/**'
+      - '.github/workflows/log-aggregator-service-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'log-aggregator-service/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: log-aggregator-service
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: test_db
+          MYSQL_USER: testuser
+          MYSQL_PASSWORD: testpass
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: log-aggregator-service/package-lock.json
+
+    - name: Install dependencies
+      working-directory: ./log-aggregator-service
+      run: npm ci
+
+    - name: Run linter
+      working-directory: ./log-aggregator-service
+      run: npm run lint --if-present
+
+    - name: Run tests
+      working-directory: ./log-aggregator-service
+      run: npm test --if-present
+      env:
+        MYSQL_HOST: localhost
+        MYSQL_PORT: 3306
+        MYSQL_USER: testuser
+        MYSQL_PASSWORD: testpass
+        MYSQL_DATABASE: test_db
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+
+    - name: Run security audit
+      working-directory: ./log-aggregator-service
+      run: npm audit --if-present
+
+    - name: Test Docker build
+      run: |
+        docker build -t test-image ./log-aggregator-service
+        docker run --rm test-image npm test --if-present
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./log-aggregator-service
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Configure kubectl
+      uses: azure/k8s-set-context@v3
+      with:
+        method: kubeconfig
+        kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+    - name: Deploy to Kubernetes
+      run: |
+        # Update image in deployment
+        kubectl set image deployment/log-aggregator-service \
+          log-aggregator-service=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:main-${{ github.sha }} \
+          -n microservices
+        
+        # Wait for rollout to complete
+        kubectl rollout status deployment/log-aggregator-service -n microservices --timeout=300s
+
+    - name: Verify deployment
+      run: |
+        kubectl get pods -n microservices -l app=log-aggregator-service
+        kubectl get service log-aggregator-service -n microservices
+        
+    - name: Run smoke tests
+      run: |
+        # Wait for service to be ready
+        kubectl wait --for=condition=available --timeout=300s deployment/log-aggregator-service -n microservices
+        
+        # Test health endpoint
+        SERVICE_IP=$(kubectl get service log-aggregator-service -n microservices -o jsonpath='{.spec.clusterIP}')
+        kubectl run test-pod --rm -i --restart=Never --image=curlimages/curl -- \
+          curl -f http://$SERVICE_IP:3002/health

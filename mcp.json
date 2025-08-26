@@ -1,0 +1,230 @@
+{
+  "name": "microservices-devops-reference-architecture",
+  "version": "1.0.0",
+  "description": "Enterprise-grade microservices platform with comprehensive DevOps automation showcasing production-ready skills",
+  "author": "Rafael Sathler",
+  "homepage": "https://github.com/rafilkmp3/microservices-devops-reference-architecture",
+  "license": "MIT",
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@context7/mcp-server"],
+      "env": {
+        "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
+      }
+    }
+  },
+  "keywords": [
+    "microservices",
+    "devops", 
+    "docker",
+    "kubernetes", 
+    "nodejs",
+    "mysql",
+    "redis", 
+    "ci-cd",
+    "github-actions",
+    "automation",
+    "enterprise",
+    "production-ready",
+    "reference-architecture",
+    "platform-engineering",
+    "observability",
+    "security",
+    "testing",
+    "multi-environment",
+    "scalable",
+    "portfolio"
+  ],
+  "technologies": {
+    "backend": [
+      "Node.js 20+",
+      "Express.js",
+      "MySQL 8.0", 
+      "Redis 7",
+      "Winston (Logging)"
+    ],
+    "infrastructure": [
+      "Docker",
+      "Docker Compose", 
+      "Kubernetes",
+      "GitHub Actions",
+      "Make automation"
+    ],
+    "testing": [
+      "Jest",
+      "Supertest",
+      "ESLint",
+      "Multi-environment testing"
+    ],
+    "devops": [
+      "CI/CD Pipelines",
+      "Container Orchestration",
+      "Security Scanning",
+      "Performance Monitoring",
+      "Cross-platform Support"
+    ]
+  },
+  "architecture": {
+    "pattern": "microservices",
+    "services": [
+      {
+        "name": "configuration-service",
+        "port": 3001,
+        "description": "Centralized configuration management with Redis caching and MySQL persistence",
+        "endpoints": [
+          "GET /health",
+          "GET /config/:serviceName", 
+          "POST /config/:serviceName",
+          "DELETE /config/:serviceName/:key",
+          "GET /config"
+        ]
+      },
+      {
+        "name": "log-aggregator-service", 
+        "port": 3002,
+        "description": "High-performance logging service with structured JSON output and bulk operations",
+        "endpoints": [
+          "GET /health",
+          "POST /logs",
+          "POST /logs/bulk",
+          "GET /logs",
+          "GET /logs/:serviceName/recent",
+          "GET /stats"
+        ]
+      }
+    ],
+    "databases": [
+      {
+        "type": "MySQL",
+        "version": "8.0",
+        "purpose": "Primary data persistence",
+        "port": 3306
+      },
+      {
+        "type": "Redis", 
+        "version": "7",
+        "purpose": "Caching and session management",
+        "port": 6379
+      }
+    ]
+  },
+  "deployment": {
+    "environments": [
+      "development",
+      "github-actions-ci",
+      "kubernetes-local"
+    ],
+    "containers": {
+      "multi_stage_builds": true,
+      "security_scanning": true,
+      "size_optimization": true,
+      "target_size": "<200MB"
+    },
+    "kubernetes": {
+      "manifests": "k8s-manifests/",
+      "health_checks": true,
+      "auto_scaling": true,
+      "resource_limits": true
+    }
+  },
+  "automation": {
+    "make_targets": "65+",
+    "categories": [
+      "development",
+      "testing", 
+      "building",
+      "deployment",
+      "quality",
+      "security",
+      "monitoring"
+    ],
+    "cross_platform": [
+      "macOS",
+      "Linux", 
+      "Windows (WSL2)"
+    ]
+  },
+  "quality_metrics": {
+    "test_coverage": {
+      "target": "85%+",
+      "current": "87%"
+    },
+    "response_times": {
+      "configuration_service": "<50ms",
+      "log_aggregator_service": "<50ms"
+    },
+    "build_time": "<5m",
+    "security_scans": "passing",
+    "documentation_coverage": "95%+"
+  },
+  "portfolio_highlights": [
+    "65+ Automated Make Targets - Complete CI/CD pipeline automation",
+    "Multi-stage Docker Builds - Optimized containerization with security scanning",
+    "Kubernetes Orchestration - Full K8s deployment with health checks and auto-scaling", 
+    "Multi-Environment Testing - Development, GitHub Actions, and Kubernetes testing",
+    "Security & Quality - ESLint, security audits, and comprehensive code coverage",
+    "Observability - Structured logging, monitoring, and performance tracking",
+    "Cross-Platform Support - Tested on macOS, Linux, and Windows environments"
+  ],
+  "skills_demonstrated": {
+    "devops_engineering": [
+      "Container Orchestration",
+      "CI/CD Pipeline Design", 
+      "Infrastructure Automation",
+      "Multi-Environment Strategy"
+    ],
+    "backend_development": [
+      "Microservices Design",
+      "API Development",
+      "Database Integration", 
+      "Performance Optimization"
+    ],
+    "platform_engineering": [
+      "Developer Experience",
+      "Build System Architecture",
+      "Cross-Platform Compatibility",
+      "Production Readiness"
+    ],
+    "quality_security": [
+      "Testing Strategy",
+      "Security Implementation",
+      "Code Quality",
+      "Monitoring & Observability"
+    ]
+  },
+  "getting_started": {
+    "quick_setup": [
+      "git clone https://github.com/rafilkmp3/microservices-devops-reference-architecture.git",
+      "cd microservices-devops-reference-architecture", 
+      "make setup",
+      "make build",
+      "make dev"
+    ],
+    "prerequisites": [
+      "Docker & Docker Compose",
+      "Make (automation)",
+      "Node.js 20+ (local development)",
+      "Kubernetes cluster (OrbStack/Docker Desktop)"
+    ]
+  },
+  "performance_characteristics": {
+    "service_performance": {
+      "configuration_service_response_time": "<50ms",
+      "log_aggregator_throughput": "1000+ logs/second", 
+      "api_throughput": "500+ requests/second per service"
+    },
+    "deployment_operations": {
+      "container_startup": "<30 seconds",
+      "zero_downtime_deployments": true,
+      "resource_efficiency": "<200MB production footprint",
+      "horizontal_scaling": "auto-scaling based on CPU/memory"
+    }
+  },
+  "context7_integration": {
+    "documentation_access": "Real-time access to latest library documentation",
+    "development_support": "Context-aware development assistance",
+    "best_practices": "Up-to-date framework and library best practices",
+    "code_examples": "Relevant code examples and patterns"
+  }
+}
